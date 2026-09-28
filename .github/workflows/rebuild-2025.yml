@@ -1,0 +1,43 @@
+name: Rebuild 2025 bank
+on:
+  push:
+    branches: [chatgpt/rebuild-7106]
+  workflow_dispatch:
+
+jobs:
+  rebuild:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Install dependencies
+        run: pip install pypdf pdfplumber Pillow
+      - name: Download official 23 April 2025 A/B bank
+        run: |
+          mkdir -p reference
+          curl -L --fail --retry 3 --retry-delay 2 \
+            'https://www.ilportaledellautomobilista.it/documents/56611/57321/domande%2BAB%2Bitaliano%2B23%2B04%2B2025/95e60cf5-8e20-444a-87d3-7b51e979e851?version=1.0' \
+            -o reference/listato-ufficiale.pdf
+          file reference/listato-ufficiale.pdf
+          test "$(stat -c%s reference/listato-ufficiale.pdf)" -gt 20000000
+      - name: Extract bank
+        run: python scripts/extract_bank.py
+      - name: Print audit
+        run: |
+          python - <<'PY'
+          import json
+          a=json.load(open('reference/extraction-audit.json',encoding='utf-8'))
+          print(json.dumps(a,ensure_ascii=False,indent=2))
+          PY
+      - name: Upload rebuilt data
+        uses: actions/upload-artifact@v4
+        with:
+          name: patente-lab-2025-rebuild
+          path: |
+            dist/bank.json
+            dist/images/
+            reference/extraction-audit.json
+          if-no-files-found: error
+          compression-level: 6
