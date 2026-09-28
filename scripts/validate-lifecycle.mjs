@@ -95,13 +95,13 @@ test('quiz surface shows the shortcut guide and an always-visible next control',
 const single=harness();await single.init();single.run("mode='learn';selected=new Set(['8']);startSession('learn')");
 const first=single.run('session.ids[0]'),firstQuestion=bank.questions.find(q=>q.id===first),chapterCount=bank.chapters.find(c=>c.id===firstQuestion.chapterId).count;
 single.run(`answerQuestion(${firstQuestion.answer})`);single.run('home()');
-test('one correct answer is shown as saved before the chapter ends',()=>{const html=single.nodes.get('#app').innerHTML;assert(html.includes(`1 / ${chapterCount} corretti`));assert(html.includes('1 risposta registrata'));assert(html.includes('0,15%')||html.includes('0,16%')||html.includes('0,19%'));});
+test('one correct answer is shown as saved before the chapter ends',()=>{const html=single.nodes.get('#app').innerHTML;assert(html.includes(`1 / ${chapterCount} corretti`));assert(/1 \/ 7\.?106 quiz corretti in tutti i capitoli/.test(html));assert(html.includes('0,15%')||html.includes('0,16%')||html.includes('0,19%'));});
 const again=harness(Object.fromEntries(single.storage));await again.init();
 test('one correct answer remains after reload and is excluded from study',()=>{assert(again.nodes.get('#app').innerHTML.includes(`1 / ${chapterCount} corretti`));assert.equal(again.run(`pool().some(q=>q.id==='${first}')`),false);});
 const mistaken=harness();await mistaken.init();mistaken.run("mode='learn';selected=new Set(['8']);startSession('learn')");
 const wrongId=mistaken.run('session.ids[0]'),wrongQuestion=bank.questions.find(q=>q.id===wrongId);
 mistaken.run(`answerQuestion(${!wrongQuestion.answer})`);mistaken.run('home()');
-test('one incorrect answer is saved immediately as an attempt and error',()=>{const html=mistaken.nodes.get('#app').innerHTML;assert(html.includes('1 risposta registrata'));assert(html.includes('1 errore da ripassare'));});
+test('one incorrect answer is saved immediately as an attempt and error',()=>{const html=mistaken.nodes.get('#app').innerHTML;assert.equal(JSON.parse(mistaken.storage.get('patente-lab-progress-v1')).progress[wrongId].attempts,1);assert(html.includes('1 errore da ripassare'));});
 const retry=harness(Object.fromEntries(mistaken.storage));await retry.init();retry.run("mode='errors';selected=new Set(['8'])");
 test('the individual error remains in review after reload',()=>{assert.equal(retry.run(`pool().some(q=>q.id==='${wrongId}')`),true);});
 const chapterQuestions=bank.questions.filter(q=>q.chapterId==='11');
@@ -140,5 +140,24 @@ test('answering after reconciliation updates session and home counts together',(
   assert(current.nodes.get('#app').innerHTML.includes('Sessione: 476/552 risposte'));
   assert(current.nodes.get('#app').innerHTML.includes('Capitolo: 445/552 corretti'));
   current.run('home()');assert(current.nodes.get('#app').innerHTML.includes('445 / 552 corretti'));
+});
+const wholeChapterProgress={};
+for(const q of chapterQuestions)core.record(wholeChapterProgress,q,q.answer,now);
+for(const id of ['20719','20720','20721','20722']) {
+  const q=bank.questions.find(q=>q.id===id);assert.equal(q.chapterId,'7');
+  core.record(wholeChapterProgress,q,q.answer,now);
+}
+for(let i=0;i<49;i++)core.record(wholeChapterProgress,chapterQuestions[0],chapterQuestions[0].answer,now);
+const totals=harness({
+  'patente-lab-progress-v1':JSON.stringify({format:'patente-lab-progress',version:1,progress:wholeChapterProgress}),
+  'patente-lab-settings-v1':JSON.stringify({mode:'errors',selected:['11']})
+});
+await totals.init();
+test('home distinguishes 556 mastered across the bank from 552 in one chapter and hides 605 attempts',()=>{
+  const html=totals.nodes.get('#app').innerHTML;
+  assert(/556 \/ 7\.?106 quiz corretti in tutti i capitoli · 4 ora in Segnaletica orizzontale/.test(html));
+  assert(html.includes('552 / 552 corretti'));
+  assert(!html.includes('605 risposte registrate'));
+  assert.equal(totals.run('stats().mastered'),556);
 });
 console.log(JSON.stringify({lifecycleChecks:checks,method:'isolated JavaScript state tests; no browser rendering'}));

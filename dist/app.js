@@ -43,19 +43,27 @@ function percentage(s) { return s.total ? Math.round(10000*s.mastered/s.total)/1
 function percentLabel(s) { return `${new Intl.NumberFormat('it',{maximumFractionDigits:2}).format(percentage(s))}%`; }
 function bar(value) { return `<div class="bar" role="progressbar" aria-label="Completamento" aria-valuenow="${value}" aria-valuemin="0" aria-valuemax="100"><span style="width:${value}%;${value>0?'min-width:2px;':''}"></span></div>`; }
 function pool() { return C.eligible(bank.questions, progress, [...selected], mode); }
-function stats() { return {total:bank.questions.length,mastered:bank.questions.filter(q=>progress[q.id]?.mastered).length,attempts:Object.values(progress).reduce((n,p)=>n+p.attempts,0)}; }
+function stats() { return {total:bank.questions.length,mastered:bank.questions.filter(q=>progress[q.id]?.mastered).length}; }
+function overallDetail(total) {
+  const base=`${total.mastered.toLocaleString('it')} / ${total.total.toLocaleString('it')} quiz corretti in tutti i capitoli`;
+  if(mode==='exam'||selected.size!==1)return base;
+  const chosen=[...selected][0];
+  const others=bank.chapters.map(ch=>({chapter:ch,count:ch.id===chosen?0:C.chapterStats(bank.questions,progress,ch.id).mastered})).filter(item=>item.count>0);
+  const outside=others.reduce((sum,item)=>sum+item.count,0);
+  return outside?`${base} · ${outside.toLocaleString('it')} ora ${others.length===1?`in ${others[0].chapter.title}`:'in altri capitoli'}`:base;
+}
 function stopTimer() { if (timer) clearInterval(timer); timer = null; }
 function home() {
   stopTimer(); lastResult=null;
   const total = stats();
-  app.innerHTML = `<section class="intro"><div><h1>Preparati alla patente B.</h1><p>Scegli come allenarti. I tuoi progressi restano qui.</p></div><div class="overall"><div><span>Preparazione completata</span><strong>${percentLabel(total)}</strong></div>${bar(percentage(total))}<small>${total.mastered.toLocaleString('it')} / ${total.total.toLocaleString('it')} quiz corretti · ${total.attempts.toLocaleString('it')} ${total.attempts===1?'risposta registrata':'risposte registrate'}</small></div></section>
+  app.innerHTML = `<section class="intro"><div><h1>Preparati alla patente B.</h1><p>Scegli come allenarti. I tuoi progressi restano qui.</p></div><div class="overall"><div><span>Tutti i capitoli</span><strong>${percentLabel(total)}</strong></div>${bar(percentage(total))}<small id="overall-detail">${overallDetail(total)}</small></div></section>
     ${storageWarning?`<p class="notice">${e(storageWarning)}</p>`:''}
     ${session?`<div class="resume"><span>${session.mode==='exam'?'Hai una scheda in corso. Il tempo continua a scorrere.':'Hai un allenamento in corso.'}</span><div class="resume-actions"><button class="quiet" id="discard-session">Lascia</button><button class="secondary" id="resume-session">Riprendi</button></div></div>`:''}
     <nav class="modes" aria-label="Modalità di studio">${[['learn','▤','Quiz per capitolo','Solo quelli ancora da risolvere.'],['errors','↺','Ripasso errori','Riprova i quiz che hai sbagliato.'],['exam','◷','Scheda d’esame','30 domande · 20 minuti.']].map(([id,symbol,title,desc])=>`<button class="mode ${mode===id?'selected':''}" data-mode="${id}" aria-pressed="${mode===id}"><span class="mode-symbol" aria-hidden="true">${symbol}</span><span><strong>${title}</strong><small>${desc}</small></span></button>`).join('')}</nav>
     <div class="workspace"><section class="panel">${mode==='exam'?examSetup():chapterPicker()}</section><aside class="session-panel" id="session-panel"></aside></div>
     <p class="source-note">${bank.metadata.questions.toLocaleString('it')} quiz ministeriali · <a href="${e(bank.metadata.sourcePage)}" target="_blank" rel="noopener">Fonte e listato ufficiale</a> · Progressi salvati su questo browser.</p>`;
   app.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>{mode=b.dataset.mode;saveSettings();home();});
-  app.querySelectorAll('[data-chapter]').forEach(input=>input.onchange=()=>{input.checked?selected.add(input.dataset.chapter):selected.delete(input.dataset.chapter);saveSettings();updateSessionPanel();});
+  app.querySelectorAll('[data-chapter]').forEach(input=>input.onchange=()=>{input.checked?selected.add(input.dataset.chapter):selected.delete(input.dataset.chapter);saveSettings();document.querySelector('#overall-detail').textContent=overallDetail(total);updateSessionPanel();});
   if(mode!=='exam') {
     document.querySelector('#select-all').onclick=()=>{bank.chapters.forEach(c=>selected.add(c.id));saveSettings();home();};
     document.querySelector('#select-none').onclick=()=>{selected.clear();saveSettings();home();};
