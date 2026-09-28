@@ -12,6 +12,10 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
+      - name: Preserve previous bank and explanations
+        run: |
+          cp dist/bank.json /tmp/old-bank.json
+          cp dist/explanations.js /tmp/old-explanations.js
       - name: Install dependencies
         run: pip install pypdf pdfplumber Pillow
       - name: Download official 23 April 2025 A/B bank
@@ -24,20 +28,86 @@ jobs:
           test "$(stat -c%s reference/listato-ufficiale.pdf)" -gt 20000000
       - name: Extract bank
         run: python scripts/extract_bank.py
-      - name: Print audit
+      - name: Correct source metadata and remove unused images
         run: |
           python - <<'PY'
           import json
-          a=json.load(open('reference/extraction-audit.json',encoding='utf-8'))
-          print(json.dumps(a,ensure_ascii=False,indent=2))
+          from pathlib import Path
+          p=Path('dist/bank.json')
+          data=json.loads(p.read_text(encoding='utf-8'))
+          data['metadata']['sourceUrl']='https://www.ilportaledellautomobilista.it/documents/56611/57321/domande%2BAB%2Bitaliano%2B23%2B04%2B2025/95e60cf5-8e20-444a-87d3-7b51e979e851?version=1.0'
+          data['metadata']['sourceListDate']='2025-04-23'
+          data['metadata']['retrievedAt']='2026-09-28'
+          p.write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+          used={q['image'] for q in data['questions'] if q.get('image')}
+          for img in Path('dist/images').glob('*'):
+              rel='images/'+img.name
+              if rel not in used:
+                  img.unlink()
+          assert len(list(Path('dist/images').glob('*'))) == data['metadata']['images']
+          PY
+      - name: Keep explanations only for unchanged official questions
+        run: |
+          node <<'NODE'
+          const fs=require('fs'), vm=require('vm');
+          const oldBank=JSON.parse(fs.readFileSync('/tmp/old-bank.json','utf8'));
+          const newBank=JSON.parse(fs.readFileSync('dist/bank.json','utf8'));
+          const oldMap=new Map(oldBank.questions.map(q=>[q.id,q]));
+          const newMap=new Map(newBank.questions.map(q=>[q.id,q]));
+          const unchanged=new Set(), changed=[], added=[], removed=[];
+          for(const q of newBank.questions){
+            const old=oldMap.get(q.id);
+            if(!old) added.push(q.id);
+            else if(old.text===q.text && old.answer===q.answer) unchanged.add(q.id);
+            else changed.push(q.id);
+          }
+          for(const q of oldBank.questions) if(!newMap.has(q.id)) removed.push(q.id);
+          const ctx={window:{}};
+          vm.runInNewContext(fs.readFileSync('/tmp/old-explanations.js','utf8'),ctx);
+          const src=ctx.window.PatenteExplanations||{};
+          const kept={};
+          for(const [id,note] of Object.entries(src)) if(unchanged.has(id)) kept[id]=note;
+          fs.writeFileSync('dist/explanations.js','window.PatenteExplanations='+JSON.stringify(kept)+';\n');
+          const audit={
+            oldQuestions:oldBank.questions.length,
+            newQuestions:newBank.questions.length,
+            unchangedQuestions:unchanged.size,
+            changedSameId:changed.length,
+            addedIds:added.length,
+            removedIds:removed.length,
+            explanationsBefore:Object.keys(src).length,
+            explanationsKept:Object.keys(kept).length,
+            explanationsDropped:Object.keys(src).length-Object.keys(kept).length,
+            changedIds:changed,
+            addedIdsList:added,
+            removedIdsList:removed
+          };
+          fs.writeFileSync('reference/delta-audit.json',JSON.stringify(audit,null,2));
+          console.log(JSON.stringify(audit,null,2));
+          NODE
+      - name: Verify rebuilt bank
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          bank=json.load(open('dist/bank.json',encoding='utf-8'))
+          audit=json.load(open('reference/extraction-audit.json',encoding='utf-8'))
+          assert len(bank['questions']) == 7106
+          assert len({q['id'] for q in bank['questions']}) == 7106
+          assert sum(c['count'] for c in bank['chapters']) == 7106
+          assert audit['independentTextAudit'] == 'PASS'
+          assert all(not q.get('image') or Path('dist',q['image']).exists() for q in bank['questions'])
+          print(json.dumps(audit,ensure_ascii=False,indent=2))
           PY
       - name: Upload rebuilt data
         uses: actions/upload-artifact@v4
         with:
-          name: patente-lab-2025-rebuild
+          name: patente-lab-2025-final
           path: |
             dist/bank.json
+            dist/explanations.js
             dist/images/
             reference/extraction-audit.json
+            reference/delta-audit.json
           if-no-files-found: error
           compression-level: 6
