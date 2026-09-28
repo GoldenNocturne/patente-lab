@@ -109,5 +109,9 @@ jobs:
             dist/images/
             reference/extraction-audit.json
             reference/delta-audit.json
+            dist/app.js
+            scripts/extract_bank.py
+            scripts/validate.mjs
+            README.md
           if-no-files-found: error
           compression-level: 6
