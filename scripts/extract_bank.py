@@ -8,6 +8,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SOURCE = ROOT / 'reference/listato-ufficiale.pdf'
 OUT = ROOT / 'dist'
 (OUT / 'images').mkdir(exist_ok=True)
+for stale in (OUT / 'images').iterdir():
+    if stale.is_file():
+        stale.unlink()
 reader = PdfReader(SOURCE)
 bank, groups, images, chapters = [], {}, {}, {}
 current = None
@@ -73,7 +76,7 @@ for c in chapter_list:
     c['sourceTitle']=c['title']
     c['title']=short_titles.get(c['id'],c['title'])
 chapter_list.sort(key=lambda c:chapter_order.index(c['id']))
-data={'metadata':{'sourceUrl':'https://ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650','sourcePage':'https://ilportaledellautomobilista.it/web/portale-automobilista/-/quiz-per-le-patenti-am-b-superiori-e-cqc','sourcePageUpdated':'2025-11-25','retrievedAt':'2026-09-27','sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'questions':len(bank),'images':len(images),'pages':len(reader.pages),'exam':{'questions':30,'minutes':20,'maxErrors':3},'explanations':'Contenuti didattici non ufficiali da Lamuo/quiz-patente, associati per ID, testo e risposta esatti.'},'chapters':chapter_list,'questions':bank}
+data={'metadata':{'sourceUrl':'https://www.ilportaledellautomobilista.it/documents/56611/57321/domande%2BAB%2Bitaliano%2B23%2B04%2B2025/95e60cf5-8e20-444a-87d3-7b51e979e851?version=1.0','sourcePage':'https://ilportaledellautomobilista.it/web/portale-automobilista/-/quiz-per-le-patenti-am-b-superiori-e-cqc','sourceListDate':'2025-04-23','retrievedAt':'2026-09-28','sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'questions':len(bank),'images':len(images),'pages':len(reader.pages),'exam':{'questions':30,'minutes':20,'maxErrors':3},'explanations':'Contenuti didattici non ufficiali da Lamuo/quiz-patente, associati per ID, testo e risposta esatti.'},'chapters':chapter_list,'questions':bank}
 (OUT/'bank.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
 (ROOT/'reference/extraction-audit.json').write_text(json.dumps({'questions':len(bank),'uniqueIds':len({q['id'] for q in bank}),'independentTextAudit':'PASS','images':len(images),'illustratedQuestions':sum(bool(q['image']) for q in bank),'chapters':chapter_list},ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps(data['metadata'],ensure_ascii=False),flush=True)
