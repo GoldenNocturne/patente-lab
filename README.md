@@ -4,7 +4,7 @@ Webapp statica per esercitarsi con i quiz della patente B. Si usa nel browser, s
 
 ## Cosa contiene
 
-- 7.020 domande Vero/Falso organizzate in 25 capitoli, con 407 figure distinte.
+- 7.106 domande Vero/Falso organizzate in 25 capitoli, con 407 figure distinte.
 - **Quiz per capitolo:** nessun limite di tempo; propone solo le domande mai risolte correttamente e mostra il completamento del capitolo.
 - **Ripasso errori:** filtra per capitolo le domande il cui ultimo tentativo è errato.
 - **Scheda d'esame:** 30 domande casuali, 20 minuti, non superata dal quarto errore; le risposte mancanti contano come errori.
@@ -37,9 +37,9 @@ I test verificano completezza e integrità della banca dati, presenza delle figu
 
 ## Provenienza e aggiornamento dei dati
 
-Domande, risposte e immagini sono state estratte dal [PDF A/B collegato dal Portale dell'Automobilista](https://ilportaledellautomobilista.it/web/portale-automobilista/-/quiz-per-le-patenti-am-b-superiori-e-cqc), acquisito il 27 settembre 2026. `reference/extraction-audit.json` registra il controllo indipendente di identificativi, testi e risposte. Il PDF originale non è incluso nel repository.
+Domande, risposte e immagini sono state estratte dal listato A/B ufficiale del 23 aprile 2025 collegato dal [Portale dell'Automobilista](https://ilportaledellautomobilista.it/web/portale-automobilista/-/quiz-per-le-patenti-am-b-superiori-e-cqc), acquisito il 28 settembre 2026. `reference/extraction-audit.json` registra il controllo indipendente di identificativi, testi e risposte. Il PDF originale non è incluso nel repository.
 
-Le spiegazioni derivano dalla [revisione `58d9d21` di Lamuo/quiz-patente](https://github.com/Lamuo/quiz-patente/tree/58d9d213a26fe1f734bc1663abf76fa24031a214). Sono indicazioni di studio e non testo ministeriale. I quiz possono cambiare in futuro: il repository non si aggiorna automaticamente quando esce un nuovo listato.
+Le spiegazioni derivano dalla [revisione `58d9d21` di Lamuo/quiz-patente](https://github.com/Lamuo/quiz-patente/tree/58d9d213a26fe1f734bc1663abf76fa24031a214). Sono mantenute solo per i quesiti il cui ID, testo e risposta coincidono con la banca precedente; i quesiti nuovi o modificati possono quindi non avere una spiegazione. Sono indicazioni di studio e non testo ministeriale. I quiz possono cambiare in futuro: il repository non si aggiorna automaticamente quando esce un nuovo listato.
 
 Per rigenerare la banca occorrono il PDF ufficiale in `reference/listato-ufficiale.pdf` e le dipendenze Python `pypdf`, `pdfplumber`, Pillow. Eseguire `python scripts/extract_bank.py`, poi ripetere l'audit. Per reimportare i consigli, scaricare il `src/data/dataset.json` della revisione indicata sopra ed eseguire `node scripts/import-friend-explanations.mjs <percorso-del-dataset.json>`. Lo script verifica l'hash del file e la corrispondenza esatta di ogni domanda, inclusa la presenza e la corrispondenza dei gruppi di immagini.
 
