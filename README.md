@@ -1,52 +1,50 @@
 # Patente Lab
 
-Webapp statica per esercitarsi con i quiz della patente B. Si usa nel browser, senza account o server applicativo: i tentativi e i progressi restano sul dispositivo e si possono esportare e ripristinare.
+Webapp statica per preparare la patente B, senza account interno. Il sito pubblicato è privato. La banca dati è in sola lettura; i progressi sono locali al browser e si possono esportare/ripristinare.
 
-## Cosa contiene
+## Modalità
 
-- 7.020 domande Vero/Falso organizzate in 25 capitoli, con 407 figure distinte.
-- **Quiz per capitolo:** nessun limite di tempo; propone solo le domande mai risolte correttamente e mostra il completamento del capitolo.
-- **Ripasso errori:** filtra per capitolo le domande il cui ultimo tentativo è errato.
-- **Scheda d'esame:** 30 domande casuali, 20 minuti, non superata dal quarto errore; le risposte mancanti contano come errori.
-- Spiegazione, consiglio di lettura e regola chiave sotto la risposta. Sono testi didattici non ufficiali, generati con AI dal progetto [quiz-patente](https://github.com/Lamuo/quiz-patente); l'importazione richiede ID, testo e risposta identici per ciascuna domanda.
+- Quiz per capitolo: scelta multipla dei capitoli, senza limite di tempo. Include soltanto domande mai risolte correttamente. Completamento = numero di domande distinte risolte correttamente almeno una volta, diviso per tutte le domande del capitolo.
+- Ripasso errori: filtra per capitolo le domande con ultimo tentativo errato. Una risposta corretta le rimuove dal ripasso. Un nuovo errore in una scheda può reinserire anche una domanda già risolta in passato.
+- Scheda: 30 domande uniche casuali dall'intero listato, 20 minuti, promozione fino a 3 errori. Le risposte mancanti sono errori. Risposte modificabili fino alla consegna, correzione finale e consegna automatica al termine. Il termine resta assoluto anche dopo refresh, sospensione o ritorno ai capitoli. La distribuzione è casuale, non certificata come algoritmo di estrazione ministeriale.
 
-Le risposte di allenamento vengono salvate una per volta: non serve finire il capitolo. Durante un quiz, `V`/`1` risponde Vero, `F`/`2` risponde Falso, `Invio` o `Freccia destra` passa alla domanda seguente. Le figure delle domande vicine vengono precaricate.
+Durante un quiz, `V` o `1` risponde Vero; `F` o `2` risponde Falso. `Invio` o `Freccia destra` passa alla domanda seguente. In allenamento la risposta è obbligatoria prima di avanzare; nella scheda è possibile saltare una domanda. Le scorciatoie sono inattive mentre una finestra di dialogo o un campo di input ha il controllo. Il pulsante Successiva resta fisso in fondo allo schermo.
+
+## Fonte e limiti
+
+La banca dati proviene dal [listato A/B ufficiale datato 23 aprile 2025](https://www.ilportaledellautomobilista.it/documents/56611/57321/domande%2BAB%2Bitaliano%2B23%2B04%2B2025/95e60cf5-8e20-444a-87d3-7b51e979e851?version=1.0), acquisito il 28 settembre 2026. Il sito non si aggiorna automaticamente se il listato cambia in futuro.
+
+- 7.106 domande con ID ministeriale unico, 25 categorie e 409 immagini distinte. Il listato contiene alcune formulazioni ripetute sotto ID diversi: sono conservate perché fanno parte delle 7.106 righe ufficiali; il conteggio dei progressi segue gli ID ufficiali.
+- Testi, chiavi Vero/Falso e figure originali. I titoli lunghi dei capitoli hanno un'etichetta breve per l'interfaccia; `sourceTitle` conserva la prima riga del titolo del PDF.
+- Il PDF ministeriale fornisce le domande e le risposte, non una motivazione per ciascuna. Spiegazioni, consigli di lettura e regole chiave provengono dal [dataset di Lamuo/quiz-patente](https://github.com/Lamuo/quiz-patente/blob/58d9d213a26fe1f734bc1663abf76fa24031a214/src/data/dataset.json). Sono contenuti didattici generati con AI, non commenti ufficiali. L'importazione richiede corrispondenza esatta di identificativo, testo e risposta per tutte le 7.106 domande: nessun abbinamento per somiglianza.
+- `reference/extraction-audit.json` documenta l'estrazione e `reference/delta-audit.json` il passaggio dalla banca precedente: 7.020 quesiti invariati, 86 aggiunti, nessuno modificato o rimosso. Il confronto indipendente del testo verifica la corrispondenza esatta di ID, testo e risposta per ogni domanda. Le figure sono abbinate alla cella Immagine di ciascuna riga della tabella; i file immagine identici vengono conservati una sola volta.
+- Il PDF originale non viene pubblicato nell'app ed è escluso dalla repository per dimensione. URL e SHA-256 sono in `bank.json`.
 
 ## Avvio locale
 
-È sufficiente un server HTTP statico; non serve installare dipendenze JavaScript.
+Servire `dist/` con un server HTTP e aprire l'indirizzo nel browser. Non aprire direttamente `index.html` come file locale, perché il browser deve caricare `bank.json`.
 
-```sh
+```text
 python -m http.server 8765 --bind 127.0.0.1 --directory dist
 ```
 
-Aprire `http://127.0.0.1:8765/`. L'apertura diretta di `dist/index.html` come file locale non funziona perché l'app deve caricare `bank.json`.
+## Verifica e rigenerazione
 
-## Verifica
-
-Con Node.js 22 o successivo:
-
-```sh
+```text
 node --check dist/app.js
 node --check dist/explanations.js
+node --check dist/core.js
 node scripts/validate.mjs
 node scripts/validate-lifecycle.mjs
+python scripts/extract_bank.py
 ```
 
-I test verificano completezza e integrità della banca dati, presenza delle figure, corrispondenza delle spiegazioni, modalità di studio, scorciatoie e salvataggio dei progressi. La stessa verifica gira su GitHub Actions.
+Per rigenerare occorrono `pypdf`, `pdfplumber`, Pillow e il PDF in `reference/listato-ufficiale.pdf`. Una nuova versione ministeriale richiede un nuovo confronto e verifica di categorie, numeri e figure: non sostituire la banca senza audit.
 
-## Provenienza e aggiornamento dei dati
+Per rigenerare solo i consigli, scaricare il `dataset.json` dalla revisione GitHub indicata sopra e passarlo a `node scripts/import-friend-explanations.mjs <percorso-del-dataset.json>`. Lo script verifica l'hash del file e la corrispondenza di tutte le domande prima di sostituire `dist/explanations.js`.
 
-Domande, risposte e immagini sono state estratte dal [PDF A/B collegato dal Portale dell'Automobilista](https://ilportaledellautomobilista.it/web/portale-automobilista/-/quiz-per-le-patenti-am-b-superiori-e-cqc), acquisito il 27 settembre 2026. `reference/extraction-audit.json` registra il controllo indipendente di identificativi, testi e risposte. Il PDF originale non è incluso nel repository.
+## Progressi e backup
 
-Le spiegazioni derivano dalla [revisione `58d9d21` di Lamuo/quiz-patente](https://github.com/Lamuo/quiz-patente/tree/58d9d213a26fe1f734bc1663abf76fa24031a214). Sono indicazioni di studio e non testo ministeriale. I quiz possono cambiare in futuro: il repository non si aggiorna automaticamente quando esce un nuovo listato.
+Gli identificatori delle domande ministeriali sono stabili e usati per i progressi. La webapp salva la sessione corrente dopo ogni risposta. Un backup ripristinato sostituisce i progressi e annulla la sessione corrente solo dopo conferma esplicita. Non usare contemporaneamente più schede della webapp. La navigazione privata o la cancellazione dei dati del browser possono eliminare i progressi: esportare prima un backup.
 
-Per rigenerare la banca occorrono il PDF ufficiale in `reference/listato-ufficiale.pdf` e le dipendenze Python `pypdf`, `pdfplumber`, Pillow. Eseguire `python scripts/extract_bank.py`, poi ripetere l'audit. Per reimportare i consigli, scaricare il `src/data/dataset.json` della revisione indicata sopra ed eseguire `node scripts/import-friend-explanations.mjs <percorso-del-dataset.json>`. Lo script verifica l'hash del file e la corrispondenza esatta di ogni domanda, inclusa la presenza e la corrispondenza dei gruppi di immagini.
-
-## Struttura
-
-- `dist/`: sito statico pronto da servire, banca dati, consigli e immagini.
-- `scripts/`: estrazione, importazione e controlli.
-- `reference/extraction-audit.json`: riepilogo dell'audit del listato.
-
-Il codice originale dell'app è distribuito con licenza MIT. La licenza non si estende ai contenuti di terzi; dettagli in [THIRD_PARTY.md](THIRD_PARTY.md).
+Ogni risposta di allenamento, corretta o errata, viene salvata subito. Tornando ai capitoli si vedono il conteggio esatto dei quiz corretti e gli errori da ripassare; la percentuale mostra i decimali anche all'inizio di un capitolo lungo. Non serve completare la sessione o il capitolo per registrare i tentativi.

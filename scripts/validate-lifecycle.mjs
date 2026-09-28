@@ -64,7 +64,7 @@ test('other questions show their own advice after the answer',()=>{
   assert(html.includes('strada con due carreggiate separate'));
   assert(html.includes('Consiglio di lettura e regola chiave'));
 });
-test('initial screen loads all real chapters and three modes',()=>{const html=h.nodes.get('#app').innerHTML;assert(/7\.?020/.test(html));assert.equal((html.match(/data-chapter=/g)||[]).length,25);assert.equal((html.match(/data-mode=/g)||[]).length,3);});
+test('initial screen loads all 7106 official questions and three modes',()=>{const html=h.nodes.get('#app').innerHTML;assert(/7\.?106/.test(html));assert.equal((html.match(/data-chapter=/g)||[]).length,25);assert.equal((html.match(/data-mode=/g)||[]).length,3);});
 h.run("mode='learn';selected=new Set(['8']);startSession('learn')");
 const qid=h.run('session.ids[0]'),answer=bank.questions.find(q=>q.id===qid).answer;
 h.run(`answerQuestion(${answer})`);

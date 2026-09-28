@@ -13,7 +13,7 @@ assert.equal(blob,SOURCE_BLOB,'The source dataset differs from the pinned GitHub
 const friend=JSON.parse(bytes.toString('utf8'));
 const bank=JSON.parse(fs.readFileSync(new URL('../dist/bank.json',import.meta.url),'utf8'));
 assert.equal(friend.domande.length,7147);
-assert.equal(bank.questions.length,7020);
+assert.equal(bank.questions.length,7106);
 const byId=new Map(friend.domande.map(q=>[String(q.numero),q]));
 assert.equal(byId.size,friend.domande.length,'Duplicate IDs in the source dataset');
 
