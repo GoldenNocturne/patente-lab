@@ -118,6 +118,7 @@ jobs:
             dist/app.js
             scripts/extract_bank.py
             scripts/validate.mjs
+            scripts/validate-lifecycle.mjs
             README.md
           if-no-files-found: error
           compression-level: 6
