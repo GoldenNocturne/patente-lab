@@ -20,6 +20,24 @@ const read = key => { try { return JSON.parse(localStorage.getItem(key)); } catc
 function save(key, data) { try { localStorage.setItem(key, JSON.stringify(data)); } catch { storageWarning = 'Il browser non riesce a salvare i progressi. Esportali prima di chiudere la pagina.'; } }
 function saveProgress() { save(KEY, {format:'patente-lab-progress',version:1,progress}); }
 function saveSession() { save(SESSION_KEY, session); }
+function reconcileTrainingSession() {
+  if(!session || session.mode==='exam' || session.bankSha256===bank.metadata.sha256) return;
+  const chapters=new Set((Array.isArray(session.chapters)?session.chapters:session.ids.map(id=>byId.get(id)?.chapterId)).filter(id=>chapterMap.has(id)));
+  if(!chapters.size) {session=null;saveSession();return;}
+  const eligible=C.eligible(bank.questions,progress,[...chapters],session.mode);
+  const eligibleIds=new Set(eligible.map(q=>q.id)), previousIds=session.ids, currentId=previousIds[session.index];
+  const retained=previousIds.filter(id=>chapters.has(byId.get(id)?.chapterId)&&(eligibleIds.has(id)||typeof session.answers[id]==='boolean'));
+  const retainedIds=new Set(retained), added=C.shuffle(eligible.filter(q=>!retainedIds.has(q.id))).map(q=>q.id);
+  const ids=retained.concat(added);
+  if(!ids.length) {session=null;saveSession();return;}
+  const nextId=previousIds.slice(session.index+1).find(id=>retainedIds.has(id));
+  session.index=ids.includes(currentId)?ids.indexOf(currentId):nextId?ids.indexOf(nextId):Math.min(session.index,ids.length-1);
+  session.ids=ids;
+  session.answers=Object.fromEntries(Object.entries(session.answers).filter(([id])=>retainedIds.has(id)));
+  session.flags=session.flags.filter(id=>retainedIds.has(id));
+  session.chapters=[...chapters];session.bankSha256=bank.metadata.sha256;
+  saveSession();
+}
 function saveSettings() { save(SETTINGS_KEY, {mode,selected:[...selected]}); }
 function percentage(s) { return s.total ? Math.round(10000*s.mastered/s.total)/100 : 0; }
 function percentLabel(s) { return `${new Intl.NumberFormat('it',{maximumFractionDigits:2}).format(percentage(s))}%`; }
@@ -70,7 +88,7 @@ function updateSessionPanel() {
 function startSession(newMode) {
   const ids=C.shuffle(newMode==='exam'?bank.questions:pool()).slice(0,newMode==='exam'?C.EXAM.questions:undefined).map(q=>q.id);
   if(!ids.length) return;
-  session={mode:newMode,ids,index:0,answers:{},flags:[],startedAt:Date.now(),deadline:newMode==='exam'?Date.now()+C.EXAM.milliseconds:null,chapters:[...selected]};
+  session={mode:newMode,ids,index:0,answers:{},flags:[],startedAt:Date.now(),deadline:newMode==='exam'?Date.now()+C.EXAM.milliseconds:null,chapters:[...selected],bankSha256:bank.metadata.sha256};
   saveSession(); renderQuiz(); window.scrollTo({top:0,behavior:'instant'});
 }
 function preloadNearbyImages() {
@@ -93,7 +111,7 @@ function renderQuiz() {
   const isExam=session.mode==='exam', answered=typeof session.answers[q.id]==='boolean';
   const count=Object.keys(session.answers).length;
   const chapterProgress=C.chapterStats(bank.questions,progress,q.chapterId), pct=percentage(chapterProgress);
-  app.innerHTML=`<div class="quiz-shell"><div class="quiz-top"><button class="quiet" id="back-home">← Capitoli</button><h1>${e(labels[session.mode])}</h1>${isExam?'<span id="timer" class="timer" aria-label="Tempo rimanente"></span>':''}</div><div class="quiz-meta"><span>${e(ch.title)}</span><span>${isExam?`${count} / 30 risposte`:`Quiz ${session.index+1} / ${session.ids.length} · ${chapterProgress.mastered}/${chapterProgress.total} corretti (${percentLabel(chapterProgress)})`}</span></div>${bar(isExam?Math.round(count/30*100):pct)}${storageWarning?`<p class="notice" role="status">${e(storageWarning)}</p>`:''}<section class="question-card"><div class="question-label">Domanda ministeriale ${q.id}</div><div class="question-content"><h2>${studyText(q.text)}</h2>${q.image?`<img class="question-image" src="${e(q.image)}" fetchpriority="high" alt="Figura ministeriale associata alla domanda ${q.id}">`:''}</div><div class="answers">${[true,false].map(a=>`<button class="answer ${answered&&session.answers[q.id]===a?'chosen':''} ${!isExam&&answered?(q.answer===a?'correct':session.answers[q.id]===a?'wrong':''):''}" data-answer="${a}" ${answered&&!isExam?'disabled':''} aria-pressed="${answered&&session.answers[q.id]===a}" aria-keyshortcuts="${a?'V 1':'F 2'}">${a?'Vero':'Falso'}</button>`).join('')}</div>${!isExam&&answered?feedback(q,session.answers[q.id]):''}</section>${isExam?`<details class="exam-navigation"><summary>Vai a una domanda della scheda</summary><nav class="numbers" aria-label="Domande della scheda">${session.ids.map((id,i)=>`<button class="number ${i===session.index?'current':''} ${typeof session.answers[id]==='boolean'?'answered':''} ${session.flags.includes(id)?'flagged':''}" data-index="${i}" aria-label="Domanda ${i+1}${typeof session.answers[id]==='boolean'?', risposta inserita':''}" ${i===session.index?'aria-current="step"':''}>${i+1}</button>`).join('')}</nav><div class="exam-actions"><button class="secondary" id="finish-exam">Consegna scheda</button></div></details>`:''}<div class="quiz-controls"><div class="quiz-controls-inner"><button class="secondary" id="previous" ${session.index===0?'disabled':''}>← Precedente</button>${isExam?`<button class="quiet" id="flag-question">${session.flags.includes(q.id)?'★ Da rivedere':'☆ Segna da rivedere'}</button>`:''}<span class="shortcut-help">V / 1 Vero · F / 2 Falso · Invio avanti</span><button class="primary" id="next" aria-keyshortcuts="Enter ArrowRight" ${!isExam&&!answered?'disabled':''}>${session.index===session.ids.length-1?(isExam?'Consegna scheda':'Termina allenamento'):'Successiva'} <span aria-hidden="true">→</span></button></div></div></div>`;
+  app.innerHTML=`<div class="quiz-shell"><div class="quiz-top"><button class="quiet" id="back-home">← Capitoli</button><h1>${e(labels[session.mode])}</h1>${isExam?'<span id="timer" class="timer" aria-label="Tempo rimanente"></span>':''}</div><div class="quiz-meta"><span>${e(ch.title)}</span><span>${isExam?`${count} / 30 risposte`:`Sessione: ${count}/${session.ids.length} risposte · Capitolo: ${chapterProgress.mastered}/${chapterProgress.total} corretti (${percentLabel(chapterProgress)})`}</span></div>${bar(isExam?Math.round(count/30*100):pct)}${storageWarning?`<p class="notice" role="status">${e(storageWarning)}</p>`:''}<section class="question-card"><div class="question-label">Domanda ministeriale ${q.id}</div><div class="question-content"><h2>${studyText(q.text)}</h2>${q.image?`<img class="question-image" src="${e(q.image)}" fetchpriority="high" alt="Figura ministeriale associata alla domanda ${q.id}">`:''}</div><div class="answers">${[true,false].map(a=>`<button class="answer ${answered&&session.answers[q.id]===a?'chosen':''} ${!isExam&&answered?(q.answer===a?'correct':session.answers[q.id]===a?'wrong':''):''}" data-answer="${a}" ${answered&&!isExam?'disabled':''} aria-pressed="${answered&&session.answers[q.id]===a}" aria-keyshortcuts="${a?'V 1':'F 2'}">${a?'Vero':'Falso'}</button>`).join('')}</div>${!isExam&&answered?feedback(q,session.answers[q.id]):''}</section>${isExam?`<details class="exam-navigation"><summary>Vai a una domanda della scheda</summary><nav class="numbers" aria-label="Domande della scheda">${session.ids.map((id,i)=>`<button class="number ${i===session.index?'current':''} ${typeof session.answers[id]==='boolean'?'answered':''} ${session.flags.includes(id)?'flagged':''}" data-index="${i}" aria-label="Domanda ${i+1}${typeof session.answers[id]==='boolean'?', risposta inserita':''}" ${i===session.index?'aria-current="step"':''}>${i+1}</button>`).join('')}</nav><div class="exam-actions"><button class="secondary" id="finish-exam">Consegna scheda</button></div></details>`:''}<div class="quiz-controls"><div class="quiz-controls-inner"><button class="secondary" id="previous" ${session.index===0?'disabled':''}>← Precedente</button>${isExam?`<button class="quiet" id="flag-question">${session.flags.includes(q.id)?'★ Da rivedere':'☆ Segna da rivedere'}</button>`:''}<span class="shortcut-help">V / 1 Vero · F / 2 Falso · Invio avanti</span><button class="primary" id="next" aria-keyshortcuts="Enter ArrowRight" ${!isExam&&!answered?'disabled':''}>${session.index===session.ids.length-1?(isExam?'Consegna scheda':'Termina allenamento'):'Successiva'} <span aria-hidden="true">→</span></button></div></div></div>`;
   document.querySelector('#back-home').onclick=home;
   app.querySelectorAll('[data-answer]').forEach(b=>b.onclick=()=>answerQuestion(b.dataset.answer==='true'));
   document.querySelector('#previous').onclick=()=>{session.index--;saveSession();renderQuiz();};
@@ -223,6 +241,7 @@ async function init() {
     selected=new Set(Array.isArray(settings?.selected)?settings.selected.filter(id=>chapterMap.has(id)):bank.chapters.filter(c=>c.title==='Segnali di pericolo').map(c=>c.id));
     const savedSession=read(SESSION_KEY);
     if(savedSession&&['learn','errors','exam'].includes(savedSession.mode)&&Array.isArray(savedSession.ids)&&savedSession.ids.length&&savedSession.ids.every(id=>byId.has(id))&&new Set(savedSession.ids).size===savedSession.ids.length&&Number.isInteger(savedSession.index)&&savedSession.index>=0&&savedSession.index<savedSession.ids.length&&savedSession.answers&&typeof savedSession.answers==='object'&&Object.entries(savedSession.answers).every(([id,a])=>savedSession.ids.includes(id)&&typeof a==='boolean')&&Number.isFinite(savedSession.startedAt)&&(savedSession.mode!=='exam'||savedSession.ids.length===30&&Number.isFinite(savedSession.deadline))&&Array.isArray(savedSession.flags))session=savedSession;
+    reconcileTrainingSession();
     if(session?.mode==='exam'&&Date.now()>=session.deadline)finishExam(true);else home();
     registerTools();
   } catch(error) {app.innerHTML='<div class="empty"><h2>Non riesco a caricare i quiz.</h2><p>Controlla la connessione e riprova.</p><button class="primary" id="retry">Riprova</button></div>';document.querySelector('#retry').onclick=init;}

@@ -104,4 +104,41 @@ mistaken.run(`answerQuestion(${!wrongQuestion.answer})`);mistaken.run('home()');
 test('one incorrect answer is saved immediately as an attempt and error',()=>{const html=mistaken.nodes.get('#app').innerHTML;assert(html.includes('1 risposta registrata'));assert(html.includes('1 errore da ripassare'));});
 const retry=harness(Object.fromEntries(mistaken.storage));await retry.init();retry.run("mode='errors';selected=new Set(['8'])");
 test('the individual error remains in review after reload',()=>{assert.equal(retry.run(`pool().some(q=>q.id==='${wrongId}')`),true);});
+const chapterQuestions=bank.questions.filter(q=>q.chapterId==='11');
+assert.equal(chapterQuestions.length,552);
+const legacyIds=chapterQuestions.slice(0,534).map(q=>q.id),legacyAnswers={},legacyProgress={};
+for(let i=0;i<475;i++) {
+  const q=chapterQuestions[i],answer=i<444?q.answer:!q.answer;
+  legacyAnswers[q.id]=answer;core.record(legacyProgress,q,answer,now);
+}
+const legacySession={mode:'learn',ids:legacyIds,index:475,answers:legacyAnswers,flags:[],startedAt:now,deadline:null,chapters:['11']};
+const legacy=harness({
+  'patente-lab-progress-v1':JSON.stringify({format:'patente-lab-progress',version:1,progress:legacyProgress}),
+  'patente-lab-session-v1':JSON.stringify(legacySession),
+  'patente-lab-settings-v1':JSON.stringify({mode:'learn',selected:['11']})
+});
+await legacy.init();
+test('old 534-question session includes all 552 current chapter questions without losing answers',()=>{
+  const saved=JSON.parse(legacy.storage.get('patente-lab-session-v1'));
+  assert.equal(saved.ids.length,552);assert.equal(saved.index,475);assert.equal(saved.ids[475],legacyIds[475]);
+  assert.equal(saved.bankSha256,bank.metadata.sha256);
+  assert.equal(Object.keys(saved.answers).length,475);
+  assert.equal(JSON.parse(legacy.storage.get('patente-lab-progress-v1')).progress[legacyIds[0]].attempts,1);
+  assert(legacy.nodes.get('#app').innerHTML.includes('444 / 552 corretti'));
+  legacy.run('renderQuiz()');
+  assert(legacy.nodes.get('#app').innerHTML.includes('Sessione: 475/552 risposte'));
+  assert(legacy.nodes.get('#app').innerHTML.includes('Capitolo: 444/552 corretti'));
+});
+const current=harness(Object.fromEntries(legacy.storage));await current.init();
+test('reloading the reconciled session does not add questions or change progress',()=>{
+  assert.equal(current.run('session.ids.length'),552);
+  assert.equal(current.run('session.index'),475);
+  assert.equal(current.storage.get('patente-lab-progress-v1'),legacy.storage.get('patente-lab-progress-v1'));
+});
+test('answering after reconciliation updates session and home counts together',()=>{
+  current.run(`answerQuestion(${chapterQuestions[475].answer})`);
+  assert(current.nodes.get('#app').innerHTML.includes('Sessione: 476/552 risposte'));
+  assert(current.nodes.get('#app').innerHTML.includes('Capitolo: 445/552 corretti'));
+  current.run('home()');assert(current.nodes.get('#app').innerHTML.includes('445 / 552 corretti'));
+});
 console.log(JSON.stringify({lifecycleChecks:checks,method:'isolated JavaScript state tests; no browser rendering'}));
