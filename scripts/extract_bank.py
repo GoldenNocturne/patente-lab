@@ -13,23 +13,35 @@ for stale in (OUT / 'images').iterdir():
         stale.unlink()
 reader = PdfReader(SOURCE)
 bank, groups, images, chapters = [], {}, {}, {}
+stable_chapters = json.loads((ROOT / 'reference/chapter-ids.json').read_text(encoding='utf-8'))
 current = None
 clean = lambda s: re.sub(r'\s+', ' ', s or '').strip()
+heading_re = re.compile(r'Quesito n.\s*(\d+)\s*-\s*([^\n]+)')
 with pdfplumber.open(SOURCE) as doc:
     for pi, page in enumerate(doc.pages):
         text = reader.pages[pi].extract_text()
-        heading = re.search(r'Quesito n.\s*(\d+)\s*-\s*([^\n]+)', text)
-        pending = (heading[1], clean(heading[2])) if heading else None
-        tables = page.find_tables()
-        for table in tables:
+        source_headings = list(heading_re.finditer(text))
+        layout_headings = []
+        for line in page.extract_text_lines():
+            match = heading_re.search(line['text'])
+            if match:
+                layout_headings.append((line['top'], match.group(1)))
+        assert [match.group(1) for match in source_headings] == [group for _, group in layout_headings], pi+1
+        titles = {match.group(1): clean(match.group(2)) for match in source_headings}
+        events = [(top, 0, 'heading', group) for top, group in layout_headings]
+        events += [(table.bbox[1], 1, 'table', table) for table in page.find_tables()]
+        for _, _, kind, value in sorted(events, key=lambda event:event[:2]):
+            if kind == 'heading':
+                current = (value, titles[value])
+                assert current[1] in stable_chapters, (pi+1, current)
+                groups.setdefault(current[0], {'chapter':current[1], 'questions':[]})
+                continue
+            table = value
             rows = table.extract()
             for ri, values in enumerate(rows):
                 if not values or len(values) < 3:
                     continue
                 if 'Numero' in (values[0] or ''):
-                    if pending:
-                        current = pending
-                        groups.setdefault(current[0], {'chapter':current[1], 'questions':[]})
                     continue
                 qid, question, answer = clean(values[0]), clean(values[1]), clean(values[2])
                 if not qid.isdigit():
@@ -51,7 +63,7 @@ with pdfplumber.open(SOURCE) as doc:
                         (OUT/image).write_bytes(im.data)
                         images[image] = True
                 ch = current[1]
-                chapters.setdefault(ch, len(chapters)+1)
+                chapters[ch] = stable_chapters[ch]
                 q = {'id':qid, 'text':question, 'answer':answer=='VERO', 'chapterId':str(chapters[ch]), 'groupId':current[0], 'image':image, 'page':pi+1}
                 bank.append(q)
                 groups[current[0]]['questions'].append(q)
@@ -60,6 +72,7 @@ with pdfplumber.open(SOURCE) as doc:
         page.close()
 
 assert len({q['id'] for q in bank}) == len(bank), 'ID duplicati'
+assert set(chapters) == set(stable_chapters), 'Categorie non corrispondenti al listato'
 # Independent text-layer audit: every official number, answer and statement.
 reference=[]
 for p in reader.pages:
@@ -76,7 +89,7 @@ for c in chapter_list:
     c['sourceTitle']=c['title']
     c['title']=short_titles.get(c['id'],c['title'])
 chapter_list.sort(key=lambda c:chapter_order.index(c['id']))
-data={'metadata':{'sourceUrl':'https://www.ilportaledellautomobilista.it/documents/56611/57321/domande%2BAB%2Bitaliano%2B23%2B04%2B2025/95e60cf5-8e20-444a-87d3-7b51e979e851?version=1.0','sourcePage':'https://www.ilportaledellautomobilista.it/web/portale-automobilista/dettaglio-news/-/asset_publisher/V57QhEdoCmc7/document/id/121608540','sourceListDate':'2025-04-23','retrievedAt':'2026-09-28','sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'questions':len(bank),'images':len(images),'pages':len(reader.pages),'exam':{'questions':30,'minutes':20,'maxErrors':3},'explanations':'Contenuti didattici non ufficiali da Lamuo/quiz-patente, associati per ID, testo e risposta esatti.'},'chapters':chapter_list,'questions':bank}
+data={'metadata':{'sourceUrl':'https://www.ilportaledellautomobilista.it/documents/56611/57321/domande%2BAB%2Bitaliano%2B23%2B04%2B2025/95e60cf5-8e20-444a-87d3-7b51e979e851?version=1.0','sourcePage':'https://www.ilportaledellautomobilista.it/web/portale-automobilista/dettaglio-news/-/asset_publisher/V57QhEdoCmc7/document/id/121608540','sourceListDate':'2025-04-23','retrievedAt':'2026-09-28','sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'catalogRevision':'2025-04-23-layout-verified-1','questions':len(bank),'images':len(images),'pages':len(reader.pages),'exam':{'questions':30,'minutes':20,'maxErrors':3},'explanations':'Contenuti didattici non ufficiali da Lamuo/quiz-patente, associati per ID, testo e risposta esatti.'},'chapters':chapter_list,'questions':bank}
 (OUT/'bank.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
 (ROOT/'reference/extraction-audit.json').write_text(json.dumps({'questions':len(bank),'uniqueIds':len({q['id'] for q in bank}),'independentTextAudit':'PASS','images':len(images),'illustratedQuestions':sum(bool(q['image']) for q in bank),'chapters':chapter_list},ensure_ascii=False,indent=2),encoding='utf-8')
 print(json.dumps(data['metadata'],ensure_ascii=False),flush=True)

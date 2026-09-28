@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import vm from 'node:vm';
+import { createHash } from 'node:crypto';
 import { createRequire } from 'node:module';
 const require=createRequire(import.meta.url), C=require('../dist/core.js');
 const bank=JSON.parse(fs.readFileSync(new URL('../dist/bank.json',import.meta.url),'utf8'));
@@ -16,6 +17,18 @@ test('complete official bank, unique IDs and chapter totals',()=>{
   assert.equal(bank.metadata.sourceListDate,'2025-04-23');
 });
 const ids=new Map(bank.questions.map(q=>[q.id,q]));
+const layoutAudit=JSON.parse(fs.readFileSync(new URL('../reference/chapter-layout-audit.json',import.meta.url),'utf8'));
+test('every question and chapter matches the independently read PDF layout',()=>{
+  const canonical=bank.questions.slice().sort((a,b)=>Number(a.id)-Number(b.id)).map(q=>[q.id,q.groupId,q.chapterId].join(',')).join('\n');
+  assert.equal(createHash('sha256').update(canonical).digest('hex'),layoutAudit.idGroupChapterSha256);
+  assert.equal(layoutAudit.sourceSha256,bank.metadata.sha256);
+  assert.equal(layoutAudit.layoutComparison,'PASS');
+  for(const chapter of bank.chapters)assert.equal(chapter.count,layoutAudit.chapterCounts[chapter.id]);
+  for(const id of ['20872','20873','20874','20875','20876','20877','20878','20879','20880','20881']) {
+    assert.equal(ids.get(id).groupId,'4229');
+    assert.equal(ids.get(id).chapterId,'7');
+  }
+});
 test('every image exists and automatic pseudo-explanations are absent',()=>{
   for(const q of bank.questions){
     assert.equal(typeof q.answer,'boolean');assert(q.text.trim());assert(bank.chapters.some(c=>c.id===q.chapterId));

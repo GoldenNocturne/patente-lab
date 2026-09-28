@@ -21,7 +21,7 @@ function save(key, data) { try { localStorage.setItem(key, JSON.stringify(data))
 function saveProgress() { save(KEY, {format:'patente-lab-progress',version:1,progress}); }
 function saveSession() { save(SESSION_KEY, session); }
 function reconcileTrainingSession() {
-  if(!session || session.mode==='exam' || session.bankSha256===bank.metadata.sha256) return;
+  if(!session || session.mode==='exam' || session.catalogRevision===bank.metadata.catalogRevision) return;
   const chapters=new Set((Array.isArray(session.chapters)?session.chapters:session.ids.map(id=>byId.get(id)?.chapterId)).filter(id=>chapterMap.has(id)));
   if(!chapters.size) {session=null;saveSession();return;}
   const eligible=C.eligible(bank.questions,progress,[...chapters],session.mode);
@@ -35,7 +35,7 @@ function reconcileTrainingSession() {
   session.ids=ids;
   session.answers=Object.fromEntries(Object.entries(session.answers).filter(([id])=>retainedIds.has(id)));
   session.flags=session.flags.filter(id=>retainedIds.has(id));
-  session.chapters=[...chapters];session.bankSha256=bank.metadata.sha256;
+  session.chapters=[...chapters];session.bankSha256=bank.metadata.sha256;session.catalogRevision=bank.metadata.catalogRevision;
   saveSession();
 }
 function saveSettings() { save(SETTINGS_KEY, {mode,selected:[...selected]}); }
@@ -96,7 +96,7 @@ function updateSessionPanel() {
 function startSession(newMode) {
   const ids=C.shuffle(newMode==='exam'?bank.questions:pool()).slice(0,newMode==='exam'?C.EXAM.questions:undefined).map(q=>q.id);
   if(!ids.length) return;
-  session={mode:newMode,ids,index:0,answers:{},flags:[],startedAt:Date.now(),deadline:newMode==='exam'?Date.now()+C.EXAM.milliseconds:null,chapters:[...selected],bankSha256:bank.metadata.sha256};
+  session={mode:newMode,ids,index:0,answers:{},flags:[],startedAt:Date.now(),deadline:newMode==='exam'?Date.now()+C.EXAM.milliseconds:null,chapters:[...selected],bankSha256:bank.metadata.sha256,catalogRevision:bank.metadata.catalogRevision};
   saveSession(); renderQuiz(); window.scrollTo({top:0,behavior:'instant'});
 }
 function preloadNearbyImages() {

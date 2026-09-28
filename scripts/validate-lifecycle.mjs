@@ -105,8 +105,8 @@ test('one incorrect answer is saved immediately as an attempt and error',()=>{co
 const retry=harness(Object.fromEntries(mistaken.storage));await retry.init();retry.run("mode='errors';selected=new Set(['8'])");
 test('the individual error remains in review after reload',()=>{assert.equal(retry.run(`pool().some(q=>q.id==='${wrongId}')`),true);});
 const chapterQuestions=bank.questions.filter(q=>q.chapterId==='11');
-assert.equal(chapterQuestions.length,552);
-const legacyIds=chapterQuestions.slice(0,534).map(q=>q.id),legacyAnswers={},legacyProgress={};
+assert.equal(chapterQuestions.length,531);
+const legacyIds=chapterQuestions.slice(0,500).map(q=>q.id),legacyAnswers={},legacyProgress={};
 for(let i=0;i<475;i++) {
   const q=chapterQuestions[i],answer=i<444?q.answer:!q.answer;
   legacyAnswers[q.id]=answer;core.record(legacyProgress,q,answer,now);
@@ -118,28 +118,50 @@ const legacy=harness({
   'patente-lab-settings-v1':JSON.stringify({mode:'learn',selected:['11']})
 });
 await legacy.init();
-test('old 534-question session includes all 552 current chapter questions without losing answers',()=>{
+test('older training session includes all 531 correctly categorized questions without losing answers',()=>{
   const saved=JSON.parse(legacy.storage.get('patente-lab-session-v1'));
-  assert.equal(saved.ids.length,552);assert.equal(saved.index,475);assert.equal(saved.ids[475],legacyIds[475]);
+  assert.equal(saved.ids.length,531);assert.equal(saved.index,475);assert.equal(saved.ids[475],legacyIds[475]);
   assert.equal(saved.bankSha256,bank.metadata.sha256);
+  assert.equal(saved.catalogRevision,bank.metadata.catalogRevision);
   assert.equal(Object.keys(saved.answers).length,475);
   assert.equal(JSON.parse(legacy.storage.get('patente-lab-progress-v1')).progress[legacyIds[0]].attempts,1);
-  assert(legacy.nodes.get('#app').innerHTML.includes('444 / 552 corretti'));
+  assert(legacy.nodes.get('#app').innerHTML.includes('444 / 531 corretti'));
   legacy.run('renderQuiz()');
-  assert(legacy.nodes.get('#app').innerHTML.includes('Sessione: 475/552 risposte'));
-  assert(legacy.nodes.get('#app').innerHTML.includes('Capitolo: 444/552 corretti'));
+  assert(legacy.nodes.get('#app').innerHTML.includes('Sessione: 475/531 risposte'));
+  assert(legacy.nodes.get('#app').innerHTML.includes('Capitolo: 444/531 corretti'));
 });
 const current=harness(Object.fromEntries(legacy.storage));await current.init();
 test('reloading the reconciled session does not add questions or change progress',()=>{
-  assert.equal(current.run('session.ids.length'),552);
+  assert.equal(current.run('session.ids.length'),531);
   assert.equal(current.run('session.index'),475);
   assert.equal(current.storage.get('patente-lab-progress-v1'),legacy.storage.get('patente-lab-progress-v1'));
 });
 test('answering after reconciliation updates session and home counts together',()=>{
   current.run(`answerQuestion(${chapterQuestions[475].answer})`);
-  assert(current.nodes.get('#app').innerHTML.includes('Sessione: 476/552 risposte'));
-  assert(current.nodes.get('#app').innerHTML.includes('Capitolo: 445/552 corretti'));
-  current.run('home()');assert(current.nodes.get('#app').innerHTML.includes('445 / 552 corretti'));
+  assert(current.nodes.get('#app').innerHTML.includes('Sessione: 476/531 risposte'));
+  assert(current.nodes.get('#app').innerHTML.includes('Capitolo: 445/531 corretti'));
+  current.run('home()');assert(current.nodes.get('#app').innerHTML.includes('445 / 531 corretti'));
+});
+const moved=bank.questions.find(q=>q.id==='20876');
+assert.equal(moved.chapterId,'7');
+const oldProgress={};core.record(oldProgress,moved,moved.answer,now);
+const oldLayoutSession={
+  mode:'learn',ids:[chapterQuestions[0].id,moved.id],index:0,
+  answers:{[moved.id]:moved.answer},flags:[],startedAt:now,deadline:null,
+  chapters:['11'],bankSha256:bank.metadata.sha256
+};
+const movedHarness=harness({
+  'patente-lab-progress-v1':JSON.stringify({format:'patente-lab-progress',version:1,progress:oldProgress}),
+  'patente-lab-session-v1':JSON.stringify(oldLayoutSession),
+  'patente-lab-settings-v1':JSON.stringify({mode:'learn',selected:['11']})
+});
+await movedHarness.init();
+test('same PDF hash but corrected chapter revision moves a mastered stop-line question without losing progress',()=>{
+  const saved=JSON.parse(movedHarness.storage.get('patente-lab-session-v1'));
+  assert.equal(saved.catalogRevision,bank.metadata.catalogRevision);
+  assert(!saved.ids.includes(moved.id));
+  assert.equal(JSON.parse(movedHarness.storage.get('patente-lab-progress-v1')).progress[moved.id].mastered,true);
+  assert(movedHarness.nodes.get('#app').innerHTML.includes('1 ora in Segnaletica orizzontale'));
 });
 const wholeChapterProgress={};
 for(const q of chapterQuestions)core.record(wholeChapterProgress,q,q.answer,now);
@@ -153,11 +175,11 @@ const totals=harness({
   'patente-lab-settings-v1':JSON.stringify({mode:'errors',selected:['11']})
 });
 await totals.init();
-test('home distinguishes 556 mastered across the bank from 552 in one chapter and hides 605 attempts',()=>{
+test('home distinguishes 535 mastered across the bank from 531 in one chapter and hides 584 attempts',()=>{
   const html=totals.nodes.get('#app').innerHTML;
-  assert(/556 \/ 7\.?106 quiz corretti in tutti i capitoli · 4 ora in Segnaletica orizzontale/.test(html));
-  assert(html.includes('552 / 552 corretti'));
-  assert(!html.includes('605 risposte registrate'));
-  assert.equal(totals.run('stats().mastered'),556);
+  assert(/535 \/ 7\.?106 quiz corretti in tutti i capitoli · 4 ora in Segnaletica orizzontale/.test(html));
+  assert(html.includes('531 / 531 corretti'));
+  assert(!html.includes('584 risposte registrate'));
+  assert.equal(totals.run('stats().mastered'),535);
 });
 console.log(JSON.stringify({lifecycleChecks:checks,method:'isolated JavaScript state tests; no browser rendering'}));
