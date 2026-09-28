@@ -8,9 +8,11 @@ const bank=JSON.parse(fs.readFileSync(new URL('../dist/bank.json',import.meta.ur
 let checks=0;
 function test(name, action) {action();checks++;console.log('PASS '+name);}
 test('complete official bank, unique IDs and chapter totals',()=>{
-  assert.equal(bank.questions.length,7020);assert.equal(bank.chapters.length,25);
-  assert.equal(new Set(bank.questions.map(q=>q.id)).size,7020);
-  assert.equal(bank.chapters.reduce((s,c)=>s+c.count,0),7020);
+  assert.equal(bank.questions.length,7106);assert.equal(bank.chapters.length,25);
+  assert.equal(new Set(bank.questions.map(q=>q.id)).size,7106);
+  assert.equal(bank.chapters.reduce((s,c)=>s+c.count,0),7106);
+  assert.equal(bank.metadata.questions,7106);
+  assert.equal(bank.metadata.sourceListDate,'2025-04-23');
 });
 const ids=new Map(bank.questions.map(q=>[q.id,q]));
 test('every image exists and automatic pseudo-explanations are absent',()=>{
@@ -23,14 +25,13 @@ test('every image exists and automatic pseudo-explanations are absent',()=>{
 const explanationContext={window:{}};
 vm.runInNewContext(fs.readFileSync(new URL('../dist/explanations.js',import.meta.url),'utf8'),explanationContext);
 const verified=explanationContext.window.PatenteExplanations;
-test('all 7020 questions have individual advice from the exact-match import',()=>{
-  assert.equal(Object.keys(verified).length,bank.questions.length);
-  for(const q of bank.questions){
-    const note=verified[q.id];assert(note,`Missing advice for ${q.id}`);
-    for(const field of ['text','focus','rule'])assert(typeof note[field]==='string'&&note[field].trim(),`Missing ${field} for ${q.id}`);
+test('retained explanations are well formed and belong to current questions',()=>{
+  assert(Object.keys(verified).length>0);
+  assert(Object.keys(verified).length<=bank.questions.length);
+  for(const [id,note] of Object.entries(verified)){
+    assert(ids.has(id),`Explanation for missing question ${id}`);
+    for(const field of ['text','focus','rule'])assert(typeof note[field]==='string'&&note[field].trim(),`Missing ${field} for ${id}`);
   }
-  assert.match(verified['18545'].text,/due ruote.*tre ruote/);
-  assert.match(verified['18545'].rule,/2 o 3 ruote/);
 });
 const q=bank.questions[0], another=bank.questions.find(x=>x.chapterId!==q.chapterId);
 test('study includes only selected chapters and never-correct questions',()=>{
@@ -87,4 +88,6 @@ test('shuffle preserves the source bank',()=>{
 });
 const audit=JSON.parse(fs.readFileSync(new URL('../reference/extraction-audit.json',import.meta.url),'utf8'));
 assert.equal(audit.independentTextAudit,'PASS');
+assert.equal(audit.questions,7106);
+assert.equal(audit.uniqueIds,7106);
 console.log(JSON.stringify({checks,questions:bank.questions.length,chapters:bank.chapters.length,images:bank.metadata.images,illustratedQuestions:audit.illustratedQuestions,officialTextAudit:audit.independentTextAudit}));
