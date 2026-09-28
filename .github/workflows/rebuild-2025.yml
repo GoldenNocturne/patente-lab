@@ -99,6 +99,12 @@ jobs:
           assert all(not q.get('image') or Path('dist',q['image']).exists() for q in bank['questions'])
           print(json.dumps(audit,ensure_ascii=False,indent=2))
           PY
+      - name: Run project validation against rebuilt bank
+        run: |
+          node --check dist/app.js
+          node --check dist/explanations.js
+          node scripts/validate.mjs
+          node scripts/validate-lifecycle.mjs
       - name: Upload rebuilt data
         uses: actions/upload-artifact@v4
         with:
