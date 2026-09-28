@@ -1,0 +1,80 @@
+import re, json, hashlib, sys
+from pathlib import Path
+import pdfplumber
+from pypdf import PdfReader
+
+sys.stdout.reconfigure(encoding='utf-8')
+ROOT = Path(__file__).resolve().parents[1]
+SOURCE = ROOT / 'reference/listato-ufficiale.pdf'
+OUT = ROOT / 'dist'
+(OUT / 'images').mkdir(exist_ok=True)
+reader = PdfReader(SOURCE)
+bank, groups, images, chapters = [], {}, {}, {}
+current = None
+clean = lambda s: re.sub(r'\s+', ' ', s or '').strip()
+with pdfplumber.open(SOURCE) as doc:
+    for pi, page in enumerate(doc.pages):
+        text = reader.pages[pi].extract_text()
+        heading = re.search(r'Quesito n.\s*(\d+)\s*-\s*([^\n]+)', text)
+        pending = (heading[1], clean(heading[2])) if heading else None
+        tables = page.find_tables()
+        for table in tables:
+            rows = table.extract()
+            for ri, values in enumerate(rows):
+                if not values or len(values) < 3:
+                    continue
+                if 'Numero' in (values[0] or ''):
+                    if pending:
+                        current = pending
+                        groups.setdefault(current[0], {'chapter':current[1], 'questions':[]})
+                    continue
+                qid, question, answer = clean(values[0]), clean(values[1]), clean(values[2])
+                if not qid.isdigit():
+                    continue
+                assert current and question and answer in ('VERO','FALSO'), (pi,values,current)
+                cell = table.rows[ri].cells[-1]
+                matching = []
+                if cell:
+                    x0,y0,x1,y1 = cell
+                    matching = [im for im in page.images if im['x0'] >= x0-1 and im['x1'] <= x1+1 and im['top'] >= y0-1 and im['bottom'] <= y1+1]
+                assert len(matching) <= 1, (pi,qid,matching)
+                image = None
+                if matching:
+                    im = reader.pages[pi].images['/'+matching[0]['name']]
+                    digest = hashlib.sha256(im.data).hexdigest()[:20]
+                    ext = Path(im.name).suffix
+                    image = f'images/{digest}{ext}'
+                    if image not in images:
+                        (OUT/image).write_bytes(im.data)
+                        images[image] = True
+                ch = current[1]
+                chapters.setdefault(ch, len(chapters)+1)
+                q = {'id':qid, 'text':question, 'answer':answer=='VERO', 'chapterId':str(chapters[ch]), 'groupId':current[0], 'image':image, 'page':pi+1}
+                bank.append(q)
+                groups[current[0]]['questions'].append(q)
+        if pi % 40 == 0:
+            print(f'{pi+1}/{len(doc.pages)} pagine; {len(bank)} domande',flush=True)
+        page.close()
+
+assert len({q['id'] for q in bank}) == len(bank), 'ID duplicati'
+# Independent text-layer audit: every official number, answer and statement.
+reference=[]
+for p in reader.pages:
+    txt=p.extract_text()
+    txt=re.sub(r'Quesito n.[^\n]*\n|Ministero delle Infrastrutture e dei Trasporti|Numero\s*domanda\s*Testo domanda Risposta Corretta Immagine',' ',txt)
+    reference.extend((m[1],clean(m[2]),m[3]=='VERO') for m in re.finditer(r'(?m)^\s*(\d{4,6})\s+(.*?)\s+(VERO|FALSO)\b',txt,re.S))
+assert len(reference)==len(bank), (len(reference),len(bank))
+assert {(i,t,a) for i,t,a in reference} == {(q['id'],q['text'],q['answer']) for q in bank}, 'Testi o risposte divergenti'
+order=['Definizioni generali e doveri nell\'uso della strada','Segnali di pericolo','Segnali di divieto','Segnali di obbligo','Segnali di precedenza','Segnali di indicazione','Pannelli integrativi dei segnali','Segnali complementari; segnali temporanei e di cantiere']
+chapter_list=[{'id':str(i),'title':title,'count':sum(q['chapterId']==str(i) for q in bank)} for title,i in chapters.items()]
+short_titles={'11':'Definizioni, veicoli e doveri del conducente','12':'Circolazione, posizione e manovre','13':'Veicolo fermo, autostrade e strade extraurbane','14':'Luci, clacson, spie e simboli','15':'Velocità e passaggi a livello','19':'Cinture, bambini, casco e dispositivi di sicurezza','20':'Patenti, documenti e sanzioni','21':'Prevenzione e comportamento in caso di incidente','22':'Condizioni del conducente e primo soccorso','23':'Responsabilità e assicurazione','24':'Consumi, ambiente e inquinamento','25':'Meccanica, manutenzione e tenuta di strada','5':'Precedenza agli incroci','6':'Semafori e agenti del traffico','7':'Segnaletica orizzontale','4':'Segnali complementari, temporanei e di cantiere'}
+chapter_order=['11','8','9','10','2','1','3','4','7','6','15','16','12','5','17','18','13','14','19','20','21','22','23','24','25']
+for c in chapter_list:
+    c['sourceTitle']=c['title']
+    c['title']=short_titles.get(c['id'],c['title'])
+chapter_list.sort(key=lambda c:chapter_order.index(c['id']))
+data={'metadata':{'sourceUrl':'https://ilportaledellautomobilista.it/documents/56611/57319/210926_Conseguimento%2BA-B%2Bitaliano.pdf/07091bb8-a16b-4fa1-b921-4fd21fa5b650','sourcePage':'https://ilportaledellautomobilista.it/web/portale-automobilista/-/quiz-per-le-patenti-am-b-superiori-e-cqc','sourcePageUpdated':'2025-11-25','retrievedAt':'2026-09-27','sha256':hashlib.sha256(SOURCE.read_bytes()).hexdigest(),'questions':len(bank),'images':len(images),'pages':len(reader.pages),'exam':{'questions':30,'minutes':20,'maxErrors':3},'explanations':'Contenuti didattici non ufficiali da Lamuo/quiz-patente, associati per ID, testo e risposta esatti.'},'chapters':chapter_list,'questions':bank}
+(OUT/'bank.json').write_text(json.dumps(data,ensure_ascii=False,separators=(',',':')),encoding='utf-8')
+(ROOT/'reference/extraction-audit.json').write_text(json.dumps({'questions':len(bank),'uniqueIds':len({q['id'] for q in bank}),'independentTextAudit':'PASS','images':len(images),'illustratedQuestions':sum(bool(q['image']) for q in bank),'chapters':chapter_list},ensure_ascii=False,indent=2),encoding='utf-8')
+print(json.dumps(data['metadata'],ensure_ascii=False),flush=True)
+print(json.dumps(chapter_list,ensure_ascii=False),flush=True)

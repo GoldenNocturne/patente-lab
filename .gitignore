@@ -1,0 +1,11 @@
+reference/listato-ufficiale.pdf
+reference/page-*.png
+*.tar.gz
+*.tar
+.sites-runtime/
+__pycache__/
+.openai/
+.env
+.env.*
+node_modules/
+.DS_Store

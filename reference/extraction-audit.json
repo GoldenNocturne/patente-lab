@@ -1,0 +1,134 @@
+{
+  "questions": 7020,
+  "uniqueIds": 7020,
+  "independentTextAudit": "PASS",
+  "images": 407,
+  "illustratedQuestions": 3919,
+  "chapters": [
+    {
+      "id": "8",
+      "title": "Segnali di pericolo",
+      "count": 658
+    },
+    {
+      "id": "10",
+      "title": "Segnali di divieto",
+      "count": 497
+    },
+    {
+      "id": "2",
+      "title": "Segnali di obbligo",
+      "count": 423
+    },
+    {
+      "id": "9",
+      "title": "Segnali di precedenza",
+      "count": 242
+    },
+    {
+      "id": "1",
+      "title": "Segnali di indicazione",
+      "count": 587
+    },
+    {
+      "id": "3",
+      "title": "Pannelli integrativi dei segnali",
+      "count": 260
+    },
+    {
+      "id": "4",
+      "title": "Segnali complementari; segnali temporanei e di cantiere",
+      "count": 189
+    },
+    {
+      "id": "5",
+      "title": "Esempi di precedenza (ordine di precedenza agli incroci)",
+      "count": 422
+    },
+    {
+      "id": "6",
+      "title": "Segnalazioni semaforiche; segnalazioni degli agenti del traffico",
+      "count": 258
+    },
+    {
+      "id": "7",
+      "title": "Segnaletica orizzontale; segni sugli ostacoli",
+      "count": 232
+    },
+    {
+      "id": "11",
+      "title": "Definizioni stradali e di traffico; definizioni e classificazione dei veicoli; doveri del conducente nell'uso della strada -",
+      "count": 534
+    },
+    {
+      "id": "12",
+      "title": "Norme sulla circol. dei veicoli; pos. dei veicoli sulla carreggiata; cambio di direz. di corsia (svolta); comp. in presenza di",
+      "count": 379
+    },
+    {
+      "id": "13",
+      "title": "Ingombro della carreggiata; segnalazione di veicolo fermo; norme sulla circolazione in autostrada e strade extraurbane",
+      "count": 329
+    },
+    {
+      "id": "14",
+      "title": "Uso delle luci; uso dei dispositivi acustici; spie e simboli",
+      "count": 150
+    },
+    {
+      "id": "15",
+      "title": "Limiti di velocità; pericolo e intralcio alla circolazione; comportamenti ai passaggi a livello",
+      "count": 251
+    },
+    {
+      "id": "16",
+      "title": "Distanza di sicurezza",
+      "count": 129
+    },
+    {
+      "id": "17",
+      "title": "Norme sul sorpasso",
+      "count": 155
+    },
+    {
+      "id": "18",
+      "title": "Fermata, sosta, arresto e partenza",
+      "count": 188
+    },
+    {
+      "id": "19",
+      "title": "Dispositivi di equipaggiamento: funzione ed uso; cinture di sicurezza e sistemi di ritenuta per bambini; casco protettivo;",
+      "count": 144
+    },
+    {
+      "id": "20",
+      "title": "Patenti di guida; documenti di circolazione del veicolo; obbligo verso funzionari ed agenti; sistema sanzionatorio; patente a",
+      "count": 197
+    },
+    {
+      "id": "21",
+      "title": "Comportamenti per prevenire incidenti stradali; comportamento in caso di incidente stradale; peculiarità della guida di",
+      "count": 126
+    },
+    {
+      "id": "22",
+      "title": "Guida in relazione alle qualità e condizioni fisiche e psichiche; alcool, droga e farmaci ; primo soccorso",
+      "count": 157
+    },
+    {
+      "id": "23",
+      "title": "Responsabilità civile, penale, amministrativa; assicurazione R.C.A.; altre forme assicurative legate al veicolo",
+      "count": 75
+    },
+    {
+      "id": "24",
+      "title": "Limitazione dei consumi; rispetto dell¿ambiente; inquinamento: atmosferico, acustico, da cattivo smaltimento dei rifiuti",
+      "count": 109
+    },
+    {
+      "id": "25",
+      "title": "Elementi costitutivi del veicolo importanti per la sicurezza; manutenzione ed uso; stabilità e tenuta di strada del veicolo;",
+      "count": 329
+    }
+  ]
+}
