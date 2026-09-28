@@ -23,6 +23,21 @@ function harness(saved={}) {
 let checks=0;
 function test(name,fn){fn();checks++;console.log('PASS '+name);}
 const h=harness();await h.init();
+test('study text uses Italian accents and double quotes without changing elisions',()=>{
+  assert.equal(h.run('studyText("E\' consentito attraversare l\'incrocio")'), 'È consentito attraversare l&#39;incrocio');
+  assert.equal(h.run('studyText("E’ indicata la fine del segnale VELOCITA\'")'), 'È indicata la fine del segnale VELOCITÀ');
+  assert.equal(h.run('studyText("La \'paletta\' e \'l\'inversione di marcia\'")'), 'La &quot;paletta&quot; e &quot;l&#39;inversione di marcia&quot;');
+  assert.equal(h.run('studyText("L\'attenzione e <segnale>")'), 'L&#39;attenzione e &lt;segnale&gt;');
+});
+test('ministerial questions and advice render the corrected typography',()=>{
+  const accented=bank.questions.find(q=>q.id==='23077');
+  const quoted=bank.questions.find(q=>q.id==='21219');
+  assert(h.run('studyText('+JSON.stringify(accented.text)+')').startsWith('È consentito'));
+  assert(h.run('studyText('+JSON.stringify(quoted.text)+')').includes('&quot;paletta&quot;'));
+  const note=h.run('feedback('+JSON.stringify(bank.questions.find(q=>q.id==='18315'))+',true)');
+  assert(note.includes('&quot;anche in curva&quot;'));
+  assert(note.includes('&quot;parola trappola&quot;'));
+});
 const imageHarness=harness();await imageHarness.init();
 const illustrated=[...new Map(bank.questions.filter(q=>q.image).map(q=>[q.image,q])).values()].slice(0,4);
 imageHarness.run(`session={mode:'learn',ids:${JSON.stringify(illustrated.map(q=>q.id))},index:0,answers:{},flags:[],startedAt:Date.now(),deadline:null};renderQuiz()`);
