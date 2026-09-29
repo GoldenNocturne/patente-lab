@@ -16,7 +16,7 @@ La banca dati proviene dal [listato A/B ufficiale datato 23 aprile 2025](https:/
 
 - 7.106 domande con ID ministeriale unico, 25 categorie e 409 immagini distinte. Il listato contiene alcune formulazioni ripetute sotto ID diversi: sono conservate perché fanno parte delle 7.106 righe ufficiali; il conteggio dei progressi segue gli ID ufficiali.
 - Testi, chiavi Vero/Falso e figure originali. I titoli lunghi dei capitoli hanno un'etichetta breve per l'interfaccia; `sourceTitle` conserva la prima riga del titolo del PDF.
-- Il PDF ministeriale fornisce le domande e le risposte, non una motivazione per ciascuna. Spiegazioni, consigli di lettura e regole chiave provengono dal [dataset di Lamuo/quiz-patente](https://github.com/Lamuo/quiz-patente/blob/58d9d213a26fe1f734bc1663abf76fa24031a214/src/data/dataset.json). Sono contenuti didattici generati con AI, non commenti ufficiali. L'importazione richiede corrispondenza esatta di identificativo, testo e risposta per tutte le 7.106 domande: nessun abbinamento per somiglianza.
+- Il PDF ministeriale fornisce le domande e le risposte, non una motivazione per ciascuna. Spiegazioni, consigli di lettura e regole chiave provengono dal [dataset di Lamuo/quiz-patente](https://github.com/Lamuo/quiz-patente/blob/58d9d213a26fe1f734bc1663abf76fa24031a214/src/data/dataset.json). Sono contenuti didattici generati con AI, non commenti ufficiali. L'importazione richiede corrispondenza esatta di identificativo, testo e risposta per tutte le 7.106 domande: nessun abbinamento per somiglianza. Alcune spiegazioni inesatte sono sostituite con rettifiche documentate in `reference/explanation-corrections.json`; il sito mostra la fonte specifica sotto ciascuna rettifica.
 - `reference/extraction-audit.json` documenta l'estrazione e `reference/delta-audit.json` il confronto di ID, testo e risposta con la banca precedente: 7.020 quesiti invariati, 86 aggiunti, nessuno modificato o rimosso. Questo confronto non verificava i capitoli: una lettura errata dei titoli al cambio pagina aveva assegnato 227 domande al capitolo sbagliato e 2.252 a un gruppo sbagliato. La correzione legge titoli e tabelle nell'ordine in cui compaiono sul PDF, anche tra pagine, e `reference/chapter-layout-audit.json` verifica separatamente l'assegnazione di tutti i 7.106 ID. Le figure sono abbinate alla cella Immagine di ciascuna riga della tabella; i file immagine identici vengono conservati una sola volta.
 - Il PDF originale non viene pubblicato nell'app ed è escluso dalla repository per dimensione. URL e SHA-256 sono in `bank.json`.
 
@@ -42,7 +42,7 @@ python scripts/audit_chapter_layout.py
 
 Per rigenerare occorrono `pypdf`, `pdfplumber`, Pillow e il PDF in `reference/listato-ufficiale.pdf`. Una nuova versione ministeriale richiede un nuovo confronto e verifica di categorie, numeri e figure: non sostituire la banca senza audit.
 
-Per rigenerare solo i consigli, scaricare il `dataset.json` dalla revisione GitHub indicata sopra e passarlo a `node scripts/import-friend-explanations.mjs <percorso-del-dataset.json>`. Lo script verifica l'hash del file e la corrispondenza di tutte le domande prima di sostituire `dist/explanations.js`.
+Per rigenerare solo i consigli, scaricare il `dataset.json` dalla revisione GitHub indicata sopra e passarlo a `node scripts/import-friend-explanations.mjs <percorso-del-dataset.json>`. Lo script verifica l'hash del file e la corrispondenza di tutte le domande, poi applica le rettifiche documentate, prima di sostituire `dist/explanations.js`.
 
 ## Progressi e backup
 

@@ -12,6 +12,7 @@ const blob=crypto.createHash('sha1').update(`blob ${bytes.length}\0`).update(byt
 assert.equal(blob,SOURCE_BLOB,'The source dataset differs from the pinned GitHub revision');
 const friend=JSON.parse(bytes.toString('utf8'));
 const bank=JSON.parse(fs.readFileSync(new URL('../dist/bank.json',import.meta.url),'utf8'));
+const corrections=JSON.parse(fs.readFileSync(new URL('../reference/explanation-corrections.json',import.meta.url),'utf8'));
 assert.equal(friend.domande.length,7147);
 assert.equal(bank.questions.length,7106);
 const byId=new Map(friend.domande.map(q=>[String(q.numero),q]));
@@ -35,7 +36,18 @@ for(const q of bank.questions){
     assert(typeof source[field]==='string' && source[field].trim(),`Missing ${field} for ${q.id}`);
   notes[q.id]={text:source.spiegazione.trim(),focus:source.focusLinguistico.trim(),rule:source.regolaChiave.trim()};
 }
+const officialById=new Map(bank.questions.map(q=>[q.id,q]));
+for(const [id,correction] of Object.entries(corrections)){
+  const official=officialById.get(id);
+  assert(official,'Correction refers to missing question '+id);
+  assert.equal(official.text,correction.question,'Question changed for correction '+id);
+  assert.equal(official.answer,correction.answer,'Answer changed for correction '+id);
+  for(const field of ['text','focus','rule','sourceLabel','sourceUrl'])
+    assert(typeof correction[field]==='string'&&correction[field].trim(),'Missing '+field+' in correction '+id);
+  assert.equal(new URL(correction.sourceUrl).protocol,'https:');
+  notes[id]=Object.fromEntries(['text','focus','rule','sourceLabel','sourceUrl'].map(field=>[field,correction[field]]));
+}
 
-const header=`// Explanation, language tip and key rule from Lamuo/quiz-patente.\n// Source: https://github.com/Lamuo/quiz-patente/blob/${SOURCE_COMMIT}/src/data/dataset.json\n// AI-generated study advice, not ministerial text. Matched by exact ID, question text and answer.\n`;
+const header=`// Explanation, language tip and key rule from Lamuo/quiz-patente, with reviewed corrections.\n// Source: https://github.com/Lamuo/quiz-patente/blob/${SOURCE_COMMIT}/src/data/dataset.json\n// Corrections: reference/explanation-corrections.json\n// Study advice is not ministerial text. Matched by exact ID, question text and answer.\n`;
 fs.writeFileSync(new URL('../dist/explanations.js',import.meta.url),header+`window.PatenteExplanations=Object.freeze(${JSON.stringify(notes)});\n`);
-console.log(`Imported advice for ${Object.keys(notes).length} exact-matching questions from ${SOURCE_COMMIT}`);
+console.log('Imported advice for '+Object.keys(notes).length+' exact-matching questions, including '+Object.keys(corrections).length+' reviewed corrections');

@@ -1,0 +1,83 @@
+{
+  "19099": {
+    "question": "Il segnale (A) si trova dopo il segnale (B)",
+    "answer": false,
+    "text": "Il segnale A è la doppia croce di Sant'Andrea: indica un passaggio a livello senza barriere con più binari e si trova vicino ai binari. Il segnale B, invece, preannuncia un passaggio a livello con barriere o semibarriere. Riguardano due tipi diversi di attraversamento: A non è il segnale che segue B nello stesso passaggio a livello.",
+    "focus": "Non basta sapere che la croce di Sant'Andrea è vicina ai binari. Guarda il simbolo dentro B: raffigura una barriera, mentre A appartiene a un attraversamento senza barriere.",
+    "rule": "Doppia croce di Sant'Andrea = più binari, senza barriere. Triangolo con barriera = passaggio a livello con barriere.",
+    "sourceLabel": "MIT, segnaletica dei passaggi a livello",
+    "sourceUrl": "https://digifema.mit.gov.it/wp-content/uploads/2022/10/Studio-per-sito.pdf"
+  },
+  "18625": {
+    "question": "Il pannello in figura è installato posteriormente ai rimorchi o semirimorchi con massa a pieno carico superiore a 3,5 tonnellate",
+    "answer": false,
+    "text": "Il pannello raffigurato, con strisce oblique gialle e rosse, è quello applicato posteriormente agli autocarri per trasporto di cose di massa superiore a 3,5 tonnellate. Per rimorchi e semirimorchi pesanti si usa invece un pannello giallo con bordo rosso. Non indica merci pericolose o carichi sporgenti.",
+    "focus": "La differenza è nel disegno del pannello, non nella soglia di 3,5 tonnellate: strisce oblique per l'autocarro, fondo giallo con bordo rosso per il rimorchio.",
+    "rule": "Strisce oblique gialle e rosse = autocarro pesante; giallo con bordo rosso = rimorchio pesante.",
+    "sourceLabel": "Listato ministeriale sui pannelli posteriori",
+    "sourceUrl": "https://www.mit.gov.it/nfsmitgov/files/media/normativa/2025-12/Allegato%20decreto%20520%20DD%20quiz.pdf"
+  },
+  "19925": {
+    "question": "Il segnale (A), se integrato con il pannello (B), è divieto di sosta permanente",
+    "answer": false,
+    "text": "A è il divieto di sosta; B mostra due frecce orizzontali che indicano il tratto interessato dal divieto. Le frecce non indicano un orario e non rendono il divieto permanente. Sulle strade urbane, in assenza di indicazioni di orario, il divieto di sosta vige dalle 8 alle 20.",
+    "focus": "Guarda il pannello B: sono frecce, non un pannello con ore o giorni. Specifica l'estensione del divieto, non la sua durata.",
+    "rule": "Frecce = tratto interessato; non significano divieto di sosta per 24 ore.",
+    "sourceLabel": "Regolamento della segnaletica, art. 120",
+    "sourceUrl": "https://www.normattiva.it/uri-res/N2Ls?urn%3Anir%3Astato%3Adecreto%3A1992-12-16%3B495~art120%21vig="
+  },
+  "19950": {
+    "question": "In presenza del segnale raffigurato è sempre disposta la rimozione forzata del veicolo",
+    "answer": true,
+    "text": "Il segnale raffigurato è DIVIETO DI FERMATA: proibisce sia la fermata sia la sosta. Per questo quesito ministeriale la risposta è vera: al veicolo lasciato in violazione di questo divieto è associata la rimozione forzata.",
+    "focus": "Riconosci la X rossa del divieto di fermata. È diverso dal divieto di sosta, che ha una sola barra diagonale.",
+    "rule": "Divieto di fermata = niente fermata né sosta; il quiz lo associa alla rimozione.",
+    "sourceLabel": "Codice della strada, art. 159",
+    "sourceUrl": "https://aci.gov.it/codice-della-strada/art-159/"
+  },
+  "20697": {
+    "question": "In presenza del segnale raffigurato si deve usare prudenza nella strettoia perché la circolazione si svolge a doppio senso",
+    "answer": false,
+    "text": "Il segnale indica il diritto di precedenza nei sensi unici alternati. Nella strettoia i veicoli dei due sensi non possono passare contemporaneamente: passa una direzione alla volta. Bisogna comunque procedere con prudenza, ma è falsa la motivazione «perché la circolazione si svolge a doppio senso» nella strettoia.",
+    "focus": "La prudenza è corretta; è sbagliato il motivo aggiunto dopo «perché». La strettoia funziona a senso unico alternato.",
+    "rule": "Frecce bianca e rossa = precedenza nel senso unico alternato, non inizio del doppio senso.",
+    "sourceLabel": "Listato ufficiale A/B",
+    "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57321/domande%2BAB%2Bitaliano%2B23%2B04%2B2025/95e60cf5-8e20-444a-87d3-7b51e979e851?version=1.0"
+  },
+  "20928": {
+    "question": "L'elemento in figura è posto su un tratto di strada su cui è vietata la sosta",
+    "answer": false,
+    "text": "L'elemento nero e giallo raffigurato è un dosso artificiale, usato per far rallentare i veicoli. Non è un parcheggio per persone con disabilità e non è un segnale di divieto di sosta: la sua presenza, da sola, non vieta la sosta lungo il tratto.",
+    "focus": "Identifica prima la figura: è un rialzo della carreggiata, non un'area delimitata da strisce gialle.",
+    "rule": "Dosso artificiale = rallentare; non stabilisce un divieto di sosta.",
+    "sourceLabel": "Listato ufficiale A/B",
+    "sourceUrl": "https://www.ilportaledellautomobilista.it/documents/56611/57321/domande%2BAB%2Bitaliano%2B23%2B04%2B2025/95e60cf5-8e20-444a-87d3-7b51e979e851?version=1.0"
+  },
+  "22831": {
+    "question": "I veicoli che percorrono una curva, su strada a due corsie per ogni senso di marcia, come in figura, possono marciare oltrepassando la striscia discontinua se la strada è libera",
+    "answer": false,
+    "text": "Anche quando la strada è libera, i veicoli devono normalmente circolare nella corsia libera più a destra. La striscia discontinua permette di cambiare corsia per una manovra consentita, ma non autorizza a marciare a cavallo della linea tra le due corsie mentre si percorre una curva.",
+    "focus": "La parola decisiva è «marciare»: il quesito non descrive un cambio di corsia o un sorpasso, ma la normale marcia oltrepassando la linea.",
+    "rule": "Marcia normale nella corsia più a destra; striscia discontinua non significa guidare a cavallo delle corsie.",
+    "sourceLabel": "Codice della strada, art. 143",
+    "sourceUrl": "https://aci.gov.it/codice-della-strada/art-143/"
+  },
+  "22697": {
+    "question": "Il carico deve essere sistemato sugli autoveicoli in modo da evitare la sporgenza laterale dello stesso per più di tre decimi della lunghezza del veicolo",
+    "answer": false,
+    "text": "La regola dei tre decimi della lunghezza riguarda la sporgenza posteriore di un carico indivisibile, non quella laterale. Entro i limiti massimi di sagoma, il carico può sporgere lateralmente fino a 30 cm dalle luci di posizione anteriori e posteriori per ciascun lato; per oggetti difficili da percepire, come pali e sbarre posti orizzontalmente, vale un limite più restrittivo.",
+    "focus": "Il quesito scambia il limite posteriore, espresso come frazione della lunghezza del veicolo, con il limite laterale, espresso in centimetri rispetto alle luci di posizione.",
+    "rule": "Tre decimi = sporgenza posteriore di cose indivisibili; lateralmente, nei casi ammessi, fino a 30 cm dalle luci di posizione.",
+    "sourceLabel": "Codice della strada, art. 164",
+    "sourceUrl": "https://aci.gov.it/codice-della-strada/art-164/"
+  },
+  "23923": {
+    "question": "Sui motocicli è vietato trasportare oggetti che sporgano longitudinalmente rispetto alla sagoma del veicolo",
+    "answer": false,
+    "text": "Il divieto non è assoluto. Sui motocicli e sui ciclomotori a due ruote gli oggetti devono essere ben assicurati e non possono sporgere longitudinalmente oltre 50 cm rispetto alla sagoma del veicolo. Il quesito è falso perché vieta qualsiasi sporgenza, anche entro quel limite.",
+    "focus": "La parola decisiva è «vietato» senza un limite: l'articolo 170 vieta la sporgenza longitudinale oltre 50 cm, non ogni sporgenza.",
+    "rule": "Su motocicli e ciclomotori a due ruote: sporgenza longitudinale non oltre 50 cm; carico sempre ben assicurato.",
+    "sourceLabel": "Codice della strada, art. 170",
+    "sourceUrl": "https://aci.gov.it/codice-della-strada/art-170/"
+  }
+}

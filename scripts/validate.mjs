@@ -49,6 +49,23 @@ test('all 7106 questions have individual advice from the exact-match import',()=
   assert.match(verified['18545'].rule,/2 o 3 ruote/);
   assert(verified['21942']?.text);
 });
+const corrections=JSON.parse(fs.readFileSync(new URL('../reference/explanation-corrections.json',import.meta.url),'utf8'));
+test('reviewed corrections are attached to the intended official questions with traceable sources',()=>{
+  assert.equal(Object.keys(corrections).length,9);
+  for(const [id,correction] of Object.entries(corrections)){
+    const question=ids.get(id);
+    assert(question,`Missing corrected question ${id}`);
+    assert.equal(question.text,correction.question);
+    assert.equal(question.answer,correction.answer);
+    for(const field of ['text','focus','rule','sourceLabel','sourceUrl'])
+      assert.equal(verified[id][field],correction[field],`Wrong ${field} for ${id}`);
+    assert.equal(new URL(correction.sourceUrl).protocol,'https:');
+  }
+  assert.match(verified['19099'].text,/senza barriere.*con barriere/);
+  assert.doesNotMatch(verified['19099'].text,/STOP/i);
+  assert.match(verified['20928'].text,/dosso artificiale/);
+  assert.match(verified['20928'].text,/Non è un parcheggio per persone con disabilità/);
+});
 const q=bank.questions[0], another=bank.questions.find(x=>x.chapterId!==q.chapterId);
 test('study includes only selected chapters and never-correct questions',()=>{
   const p={};assert(C.eligible([q,another],p,[q.chapterId],'learn').length===1);
